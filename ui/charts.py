@@ -301,16 +301,20 @@ def create_focus_chart(df: pd.DataFrame) -> go.Figure:
             tickfont={'size': 10}
         ),
         yaxis=dict(
-            title='Hours',
-            title_font=dict(color=CHART_COLORS['green']),
+            title=dict(
+                text='Hours',
+                font=dict(color=CHART_COLORS['green'])
+            ),
             tickfont=dict(color=CHART_COLORS['green']),
             gridcolor='rgba(57, 255, 20, 0.1)',
             showgrid=True,
             zeroline=False
         ),
         yaxis2=dict(
-            title='Score (0-10)',
-            title_font=dict(color=CHART_COLORS['cyan']),
+            title=dict(
+                text='Score (0-10)',
+                font=dict(color=CHART_COLORS['cyan'])
+            ),
             tickfont=dict(color=CHART_COLORS['cyan']),
             overlaying='y',
             side='right',
@@ -491,70 +495,12 @@ def create_empty_chart(message: str = "No data available") -> go.Figure:
     return fig
 
 
-def create_heatmap(df: pd.DataFrame, metric: str = 'total_index') -> go.Figure:
-    """
-    Create a calendar heatmap for a specific metric.
-    
-    Args:
-        df: DataFrame with daily data
-        metric: Column name to visualize
-    
-    Returns:
-        Plotly Figure object with heatmap
-    """
-    if df.empty or metric not in df.columns:
-        return create_empty_chart(f"No data for {metric}")
-    
-    # Prepare data for heatmap
-    df_copy = df.copy()
-    df_copy['date'] = pd.to_datetime(df_copy['date'])
-    df_copy['day'] = df_copy['date'].dt.day_name()
-    df_copy['week'] = df_copy['date'].dt.isocalendar().week
-    
-    # Create heatmap
-    fig = go.Figure(data=go.Heatmap(
-        z=df_copy[metric],
-        x=df_copy['date'],
-        y=[metric] * len(df_copy),
-        colorscale=[
-            [0, CHART_COLORS['purple']],
-            [0.5, CHART_COLORS['cyan']],
-            [1, CHART_COLORS['green']]
-        ],
-        hovertemplate='<b>Date</b>: %{x}<br><b>Score</b>: %{z}<extra></extra>',
-        colorbar=dict(
-            title=metric,
-            title_font=dict(color=CHART_COLORS['cyan']),
-            tickfont=dict(color='#e2e8f0')
-        )
-    ))
-    
-    theme = get_neon_theme()
-    fig.update_layout(
-        **theme,
-        title=dict(
-            text=f'📊 {metric.replace("_", " ").title()} Heatmap',
-            font=dict(
-                size=18,
-                color=CHART_COLORS['cyan'],
-                family='Inter, Segoe UI, sans-serif'
-            ),
-            x=0.5,
-            xanchor='center'
-        ),
-        height=200
-    )
-    
-    return fig
-
-
 # Export all chart functions
 __all__ = [
     'render_dashboard_charts',
     'create_bio_rhythm_chart',
     'create_focus_chart',
     'create_cognitive_chart',
-    'create_heatmap',
     'create_empty_chart',
     'get_neon_theme'
 ]

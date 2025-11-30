@@ -32,7 +32,7 @@ from modules.data_manager import DataManager
 
 # Import UI components
 from ui.style_loader import load_css, create_header, styled_metric, inject_custom_html
-from ui.charts import render_dashboard_charts, create_heatmap
+from ui.charts import render_dashboard_charts
 from ui.background import render_neural_background
 
 
@@ -56,70 +56,63 @@ def initialize_session_state():
     
     if 'show_mock_data' not in st.session_state:
         st.session_state.show_mock_data = False
+    
+    if 'view_mode' not in st.session_state:
+        st.session_state.view_mode = "Daily Log Entry"
 
 
-def render_sidebar_form():
+def render_data_entry_form():
     """
-    Render the sidebar input form for daily log entry.
+    Render the data entry form in the main area (not sidebar).
     
     Returns:
         bool: True if data was saved successfully
     """
-    st.sidebar.markdown(
-        '<h2 class="neon-text-cyan">📝 Daily Log Entry</h2>',
+    st.markdown(
+        '<h2 class="neon-text-green">📝 Daily Log Entry</h2>',
         unsafe_allow_html=True
     )
     
     # Date selection
-    entry_date = st.sidebar.date_input(
+    entry_date = st.date_input(
         "Date",
         value=date.today(),
         max_value=date.today(),
         help="Select the date for this log entry"
     )
     
-    st.sidebar.divider()
+    st.divider()
     
     # Sleep Section
-    st.sidebar.markdown("### 🌙 Sleep Data")
-    col1, col2 = st.sidebar.columns(2)
+    st.markdown("### 🌙 Sleep Data")
+    col1, col2 = st.columns(2)
     with col1:
-        sleep_hours = st.number_input(
-            "Sleep (hours)",
-            min_value=0.0,
-            max_value=16.0,
-            value=7.5,
-            step=0.5,
-            help="Total hours of sleep"
-        )
-    with col2:
-        sleep_quality = st.slider(
-            "Sleep Quality",
-            min_value=0,
-            max_value=10,
-            value=7,
-            help="Rate your sleep quality (0-10)"
-        )
-    
-    col3, col4 = st.sidebar.columns(2)
-    with col3:
         bedtime = st.time_input(
             "Bedtime",
             value=datetime.strptime("22:30", "%H:%M").time(),
             help="What time did you go to bed?"
         )
-    with col4:
+    with col2:
         wake_time = st.time_input(
             "Wake Time",
             value=datetime.strptime("06:00", "%H:%M").time(),
             help="What time did you wake up?"
         )
     
-    st.sidebar.divider()
+    sleep_hours = st.number_input(
+        "Sleep (hours)",
+        min_value=0.0,
+        max_value=16.0,
+        value=7.5,
+        step=0.5,
+        help="Total hours of sleep"
+    )
+    
+    st.divider()
     
     # Activity Section
-    st.sidebar.markdown("### 💪 Activity Data")
-    col5, col6 = st.sidebar.columns(2)
+    st.markdown("### 💪 Activity Data")
+    col5, col6 = st.columns(2)
     with col5:
         study_hours = st.number_input(
             "Study (hours)",
@@ -138,19 +131,11 @@ def render_sidebar_form():
             help="Minutes of physical exercise"
         )
     
-    meditation_minutes = st.sidebar.slider(
-        "Meditation (min)",
-        min_value=0,
-        max_value=60,
-        value=15,
-        help="Minutes of meditation/mindfulness"
-    )
-    
-    st.sidebar.divider()
+    st.divider()
     
     # Cognitive Section
-    st.sidebar.markdown("### 🧠 Cognitive Metrics")
-    col7, col8 = st.sidebar.columns(2)
+    st.markdown("### 🧠 Cognitive Metrics")
+    col7, col8 = st.columns(2)
     with col7:
         diet_quality = st.slider(
             "Diet Quality",
@@ -168,7 +153,7 @@ def render_sidebar_form():
             help="Percentage of material recalled"
         )
     
-    pvt_avg_ms = st.sidebar.number_input(
+    pvt_avg_ms = st.number_input(
         "PVT Reaction Time (ms)",
         min_value=100,
         max_value=1000,
@@ -177,48 +162,12 @@ def render_sidebar_form():
         help="Average reaction time from PVT game"
     )
     
-    st.sidebar.divider()
-    
-    # Mental State Section
-    st.sidebar.markdown("### 🎭 Mental State")
-    col9, col10 = st.sidebar.columns(2)
-    with col9:
-        mood = st.slider(
-            "Mood",
-            min_value=0,
-            max_value=10,
-            value=7,
-            help="Overall mood (0-10)"
-        )
-        energy_level = st.slider(
-            "Energy",
-            min_value=0,
-            max_value=10,
-            value=7,
-            help="Energy level (0-10)"
-        )
-    with col10:
-        focus_score = st.slider(
-            "Focus",
-            min_value=0,
-            max_value=10,
-            value=7,
-            help="Ability to focus (0-10)"
-        )
-        stress_level = st.slider(
-            "Stress",
-            min_value=0,
-            max_value=10,
-            value=4,
-            help="Stress level (0-10)"
-        )
-    
-    st.sidebar.divider()
+    st.divider()
     
     # Lifestyle Section
-    st.sidebar.markdown("### 🥤 Lifestyle")
-    col11, col12 = st.sidebar.columns(2)
-    with col11:
+    st.markdown("### 🌞 Lifestyle")
+    col9, col10, col11 = st.columns(3)
+    with col9:
         water_intake_liters = st.number_input(
             "Water (L)",
             min_value=0.0,
@@ -227,27 +176,29 @@ def render_sidebar_form():
             step=0.5,
             help="Water intake in liters"
         )
-    with col12:
-        screen_time_hours = st.number_input(
-            "Screen Time (hrs)",
-            min_value=0.0,
-            max_value=16.0,
-            value=4.5,
-            step=0.5,
-            help="Non-study screen time"
+    with col10:
+        screen_time_minutes = st.number_input(
+            "Screen Time (min)",
+            min_value=0,
+            max_value=960,
+            value=270,
+            step=15,
+            help="Non-study screen time in minutes"
+        )
+    with col11:
+        sunlight_minutes = st.number_input(
+            "Sunlight (min)",
+            min_value=0,
+            max_value=720,
+            value=60,
+            step=15,
+            help="Minutes of sunlight exposure"
         )
     
-    notes = st.sidebar.text_area(
-        "Notes",
-        placeholder="Any observations or notes for today...",
-        help="Optional notes about the day",
-        max_chars=500
-    )
-    
-    st.sidebar.divider()
+    st.divider()
     
     # Save button
-    save_clicked = st.sidebar.button(
+    save_clicked = st.button(
         "💾 Save Entry",
         type="primary",
         use_container_width=True
@@ -280,22 +231,16 @@ def render_sidebar_form():
         entry = {
             'date': entry_date.strftime("%Y-%m-%d"),
             'sleep_hours': sleep_hours,
-            'sleep_quality': sleep_quality,
             'bedtime': bedtime.strftime("%H:%M"),
             'wake_time': wake_time.strftime("%H:%M"),
             'study_hours': study_hours,
             'exercise_minutes': exercise_minutes,
-            'meditation_minutes': meditation_minutes,
             'diet_quality': diet_quality,
             'recall_percent': recall_percent,
             'pvt_avg_ms': pvt_avg_ms,
-            'mood': mood,
-            'focus_score': focus_score,
-            'energy_level': energy_level,
-            'stress_level': stress_level,
             'water_intake_liters': water_intake_liters,
-            'screen_time_hours': screen_time_hours,
-            'notes': notes,
+            'screen_time_minutes': screen_time_minutes,
+            'sunlight_minutes': sunlight_minutes,
             'total_index': total_index
         }
         
@@ -303,34 +248,35 @@ def render_sidebar_form():
         success = st.session_state.data_manager.save_entry(entry)
         
         if success:
-            st.sidebar.success("✅ Entry saved successfully!")
+            st.success("✅ Entry saved successfully!")
             st.session_state.last_save = datetime.now()
             # Reload data
             st.session_state.data = st.session_state.data_manager.load_data()
-            return True
+            st.balloons()
         else:
-            st.sidebar.error("❌ Failed to save entry")
-            return False
+            st.error("❌ Failed to save entry")
     
-    return False
+    # Show recent entries table if data exists
+    df = st.session_state.data
+    if not df.empty:
+        st.divider()
+        st.markdown("### 📋 Recent Entries")
+        
+        # Show last 5 entries
+        display_df = df.head(5)[['date', 'sleep_hours', 'study_hours', 'total_index']].copy()
+        display_df.columns = ['Date', 'Sleep (hrs)', 'Study (hrs)', 'Score']
+        st.dataframe(display_df, use_container_width=True, hide_index=True)
 
 
 def render_main_dashboard():
     """Render the main dashboard with charts and metrics."""
-    
-    # Header
-    header_html = create_header(
-        "UPSC Neuro-OS",
-        "Cognitive Performance Tracking for UPSC Aspirants"
-    )
-    inject_custom_html(header_html)
     
     # Load data
     df = st.session_state.data
     
     # Show mock data option if no data exists
     if df.empty:
-        st.info("📊 No data available. You can add entries using the sidebar or load mock data for testing.")
+        st.info("📊 No data available. Toggle to Daily Log Entry to add data, or load mock data for testing.")
         
         col_mock1, col_mock2, col_mock3 = st.columns([1, 1, 1])
         with col_mock2:
@@ -375,21 +321,21 @@ def render_main_dashboard():
             metric_html = styled_metric(
                 "Sleep",
                 f"{latest_entry['sleep_hours']:.1f}h",
-                f"Q: {latest_entry['sleep_quality']}/10"
+                f"Bedtime: {latest_entry['bedtime']}"
             )
             inject_custom_html(metric_html)
         
         with col4:
             metric_html = styled_metric(
-                "Study",
-                f"{latest_entry['study_hours']:.1f}h",
-                f"Focus: {latest_entry['focus_score']}/10"
+                "Diet Quality",
+                f"{latest_entry['diet_quality']}/10",
+                f"Exercise: {latest_entry['exercise_minutes']}m"
             )
             inject_custom_html(metric_html)
         
         with col5:
             metric_html = styled_metric(
-                "PVT",
+                "PVT / Recall",
                 f"{latest_entry['pvt_avg_ms']}ms",
                 f"Recall: {latest_entry['recall_percent']}%"
             )
@@ -419,12 +365,6 @@ def render_main_dashboard():
             st.plotly_chart(focus_fig, key="dashboard_focus")
         
         st.plotly_chart(cog_fig, key="dashboard_cog")
-        
-        # Show heatmap
-        if len(df) > 3:
-            st.markdown("### 🔥 Performance Heatmap")
-            heatmap_fig = create_heatmap(df, 'total_index')
-            st.plotly_chart(heatmap_fig, key="dashboard_heatmap")
     
     with tab2:
         st.markdown("### 🌙 Bio-Rhythm Analysis")
@@ -494,11 +434,53 @@ def main():
     # Initialize session state
     initialize_session_state()
     
-    # Render sidebar form
-    render_sidebar_form()
+    # Header
+    header_html = create_header(
+        "UPSC Neuro-OS",
+        "Cognitive Performance Tracking for UPSC Aspirants"
+    )
+    inject_custom_html(header_html)
     
-    # Render main dashboard
-    render_main_dashboard()
+    # Add custom CSS for larger toggle
+    st.markdown("""
+        <style>
+        /* Make toggle switch larger and more prominent */
+        div[data-testid="stToggle"] {
+            transform: scale(1.5);
+            transform-origin: center;
+            padding: 20px 0;
+        }
+        div[data-testid="stToggle"] label {
+            font-size: 1.3rem !important;
+            font-weight: 700 !important;
+            color: #00ff41 !important;
+            text-shadow: 0 0 10px rgba(0, 255, 65, 0.5);
+        }
+        </style>
+    """, unsafe_allow_html=True)
+    
+    # Toggle at the top center - larger and more dominant
+    st.markdown("<br>", unsafe_allow_html=True)
+    col_left, col_center, col_right = st.columns([1, 2, 1])
+    with col_center:
+        view_mode_toggle = st.toggle(
+            "📊 Performance Metrics",
+            value=st.session_state.view_mode == "Performance Metrics",
+            help="Toggle ON for Performance Metrics, OFF for Daily Log Entry"
+        )
+    st.markdown("<br>", unsafe_allow_html=True)
+    
+    # Update view mode in session state
+    view_mode = "Performance Metrics" if view_mode_toggle else "Daily Log Entry"
+    st.session_state.view_mode = view_mode
+    
+    st.divider()
+    
+    # Render appropriate view
+    if view_mode == "Daily Log Entry":
+        render_data_entry_form()
+    else:
+        render_main_dashboard()
 
 
 if __name__ == "__main__":
