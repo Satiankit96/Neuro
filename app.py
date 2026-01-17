@@ -4,6 +4,7 @@ A Streamlit app for tracking and visualizing study productivity.
 """
 
 import streamlit as st
+import pandas as pd
 from datetime import datetime, time, date
 from utils.scoring import calculate_total_index
 from utils.data_manager import DataManager, UserConfigManager
@@ -101,21 +102,41 @@ def main():
         # Display cycle info
         st.info(f"🌙 **Cycle Day:** {cycle_day} - {cycle_phase}")
         
+        # Date selector OUTSIDE the form for reactivity
+        entry_date = st.date_input(
+            "📅 Entry Date",
+            value=date.today(),
+            max_value=date.today(),
+            help="Select today or a past date to add/edit entry"
+        )
+        
+        # Load existing data for selected date
+        existing_data = data_manager.load_data()
+        existing_entry = None
+        if not existing_data.empty:
+            date_str = entry_date.strftime('%Y-%m-%d')
+            if 'date' in existing_data.columns:
+                existing_data['date'] = pd.to_datetime(existing_data['date']).dt.strftime('%Y-%m-%d')
+                match = existing_data[existing_data['date'] == date_str]
+                if not match.empty:
+                    existing_entry = match.iloc[0].to_dict()
+                    st.success(f"📝 Editing existing entry for {entry_date.strftime('%b %d, %Y')}")
+        
+        # Set default values (from existing entry or defaults)
+        def get_val(key, default, dtype=float):
+            if existing_entry and key in existing_entry:
+                val = existing_entry[key]
+                if pd.notna(val):
+                    return dtype(val)
+            return default
+        
         with st.form("daily_entry"):
-            # Date selector for entry
-            entry_date = st.date_input(
-                "Entry Date",
-                value=date.today(),
-                max_value=date.today(),
-                help="Select the date for this entry (today or past dates)"
-            )
-            
             st.subheader("Study Data")
             study_hours = st.number_input(
                 "Study Hours",
                 min_value=0.0,
                 max_value=24.0,
-                value=6.0,
+                value=get_val('study_hours', 6.0),
                 step=0.5,
                 help="Total hours spent studying"
             )
@@ -124,7 +145,7 @@ def main():
                 "Screen Time (minutes)",
                 min_value=0,
                 max_value=1440,
-                value=60,
+                value=get_val('screen_time_minutes', 60, int),
                 step=15,
                 help="Leisure screen time (social media, entertainment)"
             )
@@ -133,7 +154,7 @@ def main():
                 "Recall Accuracy (%)",
                 min_value=0,
                 max_value=100,
-                value=80,
+                value=get_val('recall_percent', 80, int),
                 help="Percentage of material you can accurately recall"
             )
             
@@ -143,23 +164,41 @@ def main():
                 "Sleep Hours",
                 min_value=0.0,
                 max_value=24.0,
-                value=7.5,
+                value=get_val('sleep_hours', 7.5),
                 step=0.5,
                 help="Total hours of sleep"
             )
             
             col1, col2 = st.columns(2)
             with col1:
+                # Parse existing bedtime if available
+                default_bedtime = time(22, 30)
+                if existing_entry and 'bedtime' in existing_entry and pd.notna(existing_entry['bedtime']):
+                    try:
+                        bt = existing_entry['bedtime']
+                        if isinstance(bt, str):
+                            default_bedtime = datetime.strptime(bt, '%H:%M:%S').time()
+                    except:
+                        pass
                 bedtime = st.time_input(
                     "Bedtime",
-                    value=time(22, 30),
+                    value=default_bedtime,
                     help="Time you went to bed"
                 )
             
             with col2:
+                # Parse existing wake_time if available
+                default_wake = time(6, 0)
+                if existing_entry and 'wake_time' in existing_entry and pd.notna(existing_entry['wake_time']):
+                    try:
+                        wt = existing_entry['wake_time']
+                        if isinstance(wt, str):
+                            default_wake = datetime.strptime(wt, '%H:%M:%S').time()
+                    except:
+                        pass
                 wake_time = st.time_input(
                     "Wake Time",
-                    value=time(6, 0),
+                    value=default_wake,
                     help="Time you woke up"
                 )
             
@@ -167,7 +206,7 @@ def main():
                 "Diet Quality",
                 min_value=0,
                 max_value=10,
-                value=7,
+                value=get_val('diet_quality', 7, int),
                 help="Overall diet quality (0=poor, 10=excellent)"
             )
             
@@ -177,7 +216,7 @@ def main():
                     "Exercise (minutes)",
                     min_value=0,
                     max_value=300,
-                    value=45,
+                    value=get_val('exercise_minutes', 45, int),
                     step=5,
                     help="Total minutes of physical exercise"
                 )
@@ -187,7 +226,7 @@ def main():
                     "Sunlight Exposure (minutes)",
                     min_value=0,
                     max_value=720,
-                    value=30,
+                    value=get_val('sunlight_minutes', 30, int),
                     step=5,
                     help="Minutes of outdoor sunlight exposure"
                 )

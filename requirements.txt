@@ -3,3 +3,6 @@ pandas
 numpy
 plotly
 watchdog
+sqlalchemy==2.0.23
+psycopg2-binary==2.9.10
+python-dotenv==1.0.0
