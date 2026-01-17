@@ -7,7 +7,8 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime, time, date
 from utils.scoring import calculate_total_index
-from utils.data_manager import DataManager, UserConfigManager
+from utils.db_data_manager import DataManager, UserConfigManager
+from utils.database import init_database
 
 
 # Page configuration
@@ -17,12 +18,30 @@ st.set_page_config(
     layout="wide"
 )
 
+# Auto-initialize database tables on startup (safe to call multiple times)
+@st.cache_resource
+def setup_database():
+    """Initialize database tables once on app startup."""
+    try:
+        init_database()
+        return True
+    except Exception as e:
+        st.error(f"Database connection error: {e}")
+        return False
+
+# Initialize database
+db_ready = setup_database()
+
 
 def main():
     """Main application entry point."""
     
+    if not db_ready:
+        st.error("⚠️ Database not connected. Please check DATABASE_URL environment variable.")
+        st.stop()
+    
     # Initialize data manager
-    data_manager = DataManager("neuro_logs.csv")
+    data_manager = DataManager()
     config_manager = UserConfigManager()
     
     # Initialize session state for view toggle
