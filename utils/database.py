@@ -3,6 +3,7 @@ Database configuration and models for Neuro Index
 """
 
 import os
+import streamlit as st
 from sqlalchemy import create_engine, Column, Integer, Float, String, Date, Time, JSON
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
@@ -10,32 +11,54 @@ from sqlalchemy.orm import sessionmaker
 # Base for declarative models
 Base = declarative_base()
 
+# Global variables for lazy initialization
+_engine = None
+_SessionLocal = None
+
 
 def get_database_url():
     """
-    Get database URL from environment or use local PostgreSQL.
-    For Render/Hugging Face deployment, DATABASE_URL is auto-provided.
+    Get database URL from environment.
+    For Render/Hugging Face deployment, DATABASE_URL must be set as a secret.
     """
-    database_url = os.getenv('DATABASE_URL') or os.environ.get('DATABASE_URL')
+    database_url = os.getenv("DATABASE_URL")
     
     if not database_url:
-        raise RuntimeError(
-            "DATABASE_URL environment variable not found! "
-            "Please add it in Settings → Repository secrets on Hugging Face."
-        )
+        return None
     
     # Render uses postgres:// but SQLAlchemy needs postgresql://
-    if database_url.startswith('postgres://'):
-        database_url = database_url.replace('postgres://', 'postgresql://', 1)
+    if database_url.startswith("postgres://"):
+        database_url = database_url.replace("postgres://", "postgresql://", 1)
     
     return database_url
 
 
-# Create engine
-engine = create_engine(get_database_url(), echo=False)
+def get_engine():
+    """Get or create database engine (lazy initialization)."""
+    global _engine
+    
+    if _engine is None:
+        database_url = get_database_url()
+        
+        if not database_url:
+            st.error("🚨 CRITICAL ERROR: DATABASE_URL not found!")
+            st.warning("Please go to **Settings → Variables and secrets** and add a secret named `DATABASE_URL` with your PostgreSQL connection string.")
+            st.info("You can get a free PostgreSQL database from Render.com or Neon.tech")
+            st.stop()
+        
+        _engine = create_engine(database_url, echo=False)
+    
+    return _engine
 
-# Create session factory
-SessionLocal = sessionmaker(bind=engine)
+
+def get_session_factory():
+    """Get or create session factory (lazy initialization)."""
+    global _SessionLocal
+    
+    if _SessionLocal is None:
+        _SessionLocal = sessionmaker(bind=get_engine())
+    
+    return _SessionLocal
 
 
 class DailyEntry(Base):
@@ -115,10 +138,12 @@ class UserConfig(Base):
 
 def init_database():
     """Initialize database tables. Call this once after deployment."""
+    engine = get_engine()
     Base.metadata.create_all(bind=engine)
     print("✅ Database tables created successfully!")
 
 
 def get_session():
     """Get a new database session."""
+    SessionLocal = get_session_factory()
     return SessionLocal()
