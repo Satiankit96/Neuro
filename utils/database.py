@@ -14,18 +14,21 @@ Base = declarative_base()
 def get_database_url():
     """
     Get database URL from environment or use local PostgreSQL.
-    For Render deployment, DATABASE_URL is auto-provided.
+    For Render/Hugging Face deployment, DATABASE_URL is auto-provided.
     """
-    database_url = os.environ.get('DATABASE_URL')
+    database_url = os.getenv('DATABASE_URL') or os.environ.get('DATABASE_URL')
     
-    if database_url:
-        # Render uses postgres:// but SQLAlchemy needs postgresql://
-        if database_url.startswith('postgres://'):
-            database_url = database_url.replace('postgres://', 'postgresql://', 1)
-        return database_url
+    if not database_url:
+        raise RuntimeError(
+            "DATABASE_URL environment variable not found! "
+            "Please add it in Settings → Repository secrets on Hugging Face."
+        )
     
-    # Local PostgreSQL for development
-    return 'postgresql://postgres:postgres@localhost:5432/neuro_index'
+    # Render uses postgres:// but SQLAlchemy needs postgresql://
+    if database_url.startswith('postgres://'):
+        database_url = database_url.replace('postgres://', 'postgresql://', 1)
+    
+    return database_url
 
 
 # Create engine
