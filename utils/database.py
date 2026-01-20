@@ -46,7 +46,12 @@ def get_engine():
             st.info("You can get a free PostgreSQL database from Render.com or Neon.tech")
             st.stop()
         
-        _engine = create_engine(database_url, echo=False)
+        # Add SSL requirement for Render PostgreSQL
+        _engine = create_engine(
+            database_url, 
+            echo=False,
+            connect_args={"sslmode": "require"}
+        )
     
     return _engine
 
